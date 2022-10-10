@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JamesPEarly/loggly"
+	"github.com/joho/godotenv"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,60 +14,74 @@ import (
 )
 
 type Symbol struct {
-	Name                 string          `json:"Name"`
-	StockSymbol          string          `json:"StockSymbol"`
-	Price                int             `json:"Price"`
-	DollarChange         int             `json:"DollarChange"`
-	PercentChange        int             `json:"PercentChange"`
-	PreviousClose        int             `json:"PreviousClose"`
-	Open                 int             `json:"Open"`
-	BidPrice             int             `json:"BidPrice"`
-	BidQuantity          int             `json:"BidQuantity"`
-	AskPrice             int             `json:"AskPrice"`
-	AskQuantity          int             `json:"AskQuantity"`
-	DayRangeLow          int             `json:"DayRangeLow"`
-	DayRangeHigh         int             `json:"DayRangeHigh"`
-	YearRangeLow         int             `json:"YearRangeLow"`
-	YearRangeHigh        int             `json:"YearRangeHigh"`
-	Volume               int             `json:"Volume"`
-	AverageVolume        int             `json:"AverageVolume"`
-	MarketCap            int             `json:"MarketCap"`
-	Beta                 int             `json:"Beta"`
-	PriceEarningsRatio   int             `json:"PriceEarningsRatio"`
-	EarningsPerShare     int             `json:"EarningsPerShare"`
-	EarningsDate         string          `json:"EarningsDate"`
-	ForwardDividend      int             `json:"ForwardDividend"`
-	ForwardDividendYield int             `json:"ForwardDividendYield"`
-	ExDividendDate       int             `json:"ExDividendDate"`
-	YearTargetEstimate   int             `json:"YearTargetEstimate"`
-	QueriedSymbol        string          `json:"QueriedSymbol"`
-	DataCollectedOn      time.Time       `json:"DataCollectedOn"`
-	Stats                []SummaryStruct `json:"Summary"`
+	Name                 string    `json:"Name"`
+	StockSymbol          string    `json:"StockSymbol"`
+	Price                int       `json:"Price"`
+	DollarChange         int       `json:"DollarChange"`
+	PercentChange        int       `json:"PercentChange"`
+	PreviousClose        int       `json:"PreviousClose"`
+	Open                 int       `json:"Open"`
+	BidPrice             int       `json:"BidPrice"`
+	BidQuantity          int       `json:"BidQuantity"`
+	AskPrice             int       `json:"AskPrice"`
+	AskQuantity          int       `json:"AskQuantity"`
+	DayRangeLow          int       `json:"DayRangeLow"`
+	DayRangeHigh         int       `json:"DayRangeHigh"`
+	YearRangeLow         int       `json:"YearRangeLow"`
+	YearRangeHigh        int       `json:"YearRangeHigh"`
+	Volume               int       `json:"Volume"`
+	AverageVolume        int       `json:"AverageVolume"`
+	MarketCap            int       `json:"MarketCap"`
+	Beta                 int       `json:"Beta"`
+	PriceEarningsRatio   int       `json:"PriceEarningsRatio"`
+	EarningsPerShare     int       `json:"EarningsPerShare"`
+	EarningsDate         string    `json:"EarningsDate"`
+	ForwardDividend      int       `json:"ForwardDividend"`
+	ForwardDividendYield int       `json:"ForwardDividendYield"`
+	ExDividendDate       int       `json:"ExDividendDate"`
+	YearTargetEstimate   int       `json:"YearTargetEstimate"`
+	QueriedSymbol        string    `json:"QueriedSymbol"`
+	DataCollectedOn      time.Time `json:"DataCollectedOn"`
 }
 
-type SummaryStruct struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+type Symboldata struct {
+	Symbols []Symbol `json:"Symbols"`
+}
+
+type Item struct {
+	Time    time.Time
+	Name    string
+	Symbols []byte
+}
+
+func goDotEnvVariable(key string) string {
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	return os.Getenv(key)
 }
 
 func main() {
-	weekday := time.Now().Weekday()
-	fmt.Println(weekday)
-	daycheck := (int(weekday))
-	for {
-		os.Setenv("LOGGLY_TOKEN", "e4a25bf2-e2cc-4771-95c8-b9a68c55bc11")
-		client := loggly.New("anubhav")
-		//fmt.Println("Enter Ticker: ")
-		//var name string
-		//fmt.Scanln(&name)
+	os.Setenv("LOGGLY_TOKEN", goDotEnvVariable("LOGGLY_TOKEN"))
+	os.Setenv("LOGGLY_TOKEN", goDotEnvVariable("AWS_ACCESS_KEY_ID"))
+	os.Setenv("LOGGLY_TOKEN", goDotEnvVariable("AWS_SECRET_ACCESS_KEY"))
+	apikey := goDotEnvVariable("API_Key")
 
-		stocks := [10]string{"TSLA", "AAPL", "MSFT", "NIO", "NVDA", "MRNA", "NKLA", "FB", "AMD"}
-		for _, e := range stocks {
+	for {
+		stocks := [10]string{"TSLA", "AAPL", "MSFT", "GOOGL", "NIO", "NVDA", "MRNA", "NKLA", "FB", "AMD"}
+		for _, element := range stocks {
+			weekday := time.Now().Weekday()
+			daycheck := (int(weekday))
 			if daycheck == 7 || daycheck == 0 {
-				fmt.Println("Its the weekend, No new data pull")
+				fmt.Println("Market Closed")
 			} else {
+				var tag string = element
+				client := loggly.New(tag)
 				req, err := http.NewRequest(
-					http.MethodGet, "https://api.aletheiaapi.com/StockData?symbol="+e+"&summary=true&statistics=false",
+					http.MethodGet, "https://api.aletheiaapi.com/StockData?symbol="+element+"&summary=true&statistics=false",
 					nil,
 				)
 
@@ -74,7 +90,7 @@ func main() {
 				}
 
 				req.Header.Add("Accept", "application/json")
-				req.Header.Add("key", ("9765EE5F17A04F03B9A29C3DBBC698A3"))
+				req.Header.Add("key", (apikey))
 
 				res, err := http.DefaultClient.Do(req)
 				if err != nil {
@@ -85,11 +101,12 @@ func main() {
 				if err != nil {
 					client.EchoSend("error reading HTTP response body: %v", err.Error())
 				}
-
 				//	log.Println("We got the response:", string(responseBytes))
 
 				var symbol Symbol
 				json.Unmarshal(responseBytes, &symbol)
+				//formattedData, _ := json.MarshalIndent(symbol, "    ", "    ")
+				//fmt.Println(formattedData)
 				fmt.Println(string(responseBytes))
 
 				var respSize string = strconv.Itoa(len(responseBytes))
@@ -97,8 +114,39 @@ func main() {
 				if logErr != nil {
 					fmt.Println("err: ", logErr)
 				}
+				
+					sess, err := session.NewSession(&aws.Config{
+						Region: aws.String("us-east-1")},
+					)
+					if err != nil {
+						log.Fatalf("Error initializing AWS: %s", err)
+					}
+
+					svc := dynamodb.New(sess)
+					var item Item
+					item.Time = symbol.DataCollectedOn
+					item.Name = symbol.Name
+					item.Symbols = responseBytes
+
+					av, err := dynamodbattribute.MarshalMap(item)
+					if err != nil {
+						log.Fatalf("Error marshalling %s", err)
+					}
+
+					tableName := "Stock Summary"
+					input := &dynamodb.PutItemInput{
+						Item:      av,
+						TableName: aws.String(tableName),
+					}
+
+					_, err = svc.PutItem(input)
+					if err != nil {
+						log.Fatalf("Error calling PutItem: %s", err)
+					}
+
+					fmt.Println("Data added to table " + tableName)
 			}
-			time.Sleep(3600 * time.Second)
 		}
+		time.Sleep(3600 * time.Second)
 	}
 }
