@@ -66,8 +66,8 @@ func goDotEnvVariable(key string) string {
 
 func main() {
 	os.Setenv("LOGGLY_TOKEN", goDotEnvVariable("LOGGLY_TOKEN"))
-	os.Setenv("LOGGLY_TOKEN", goDotEnvVariable("AWS_ACCESS_KEY_ID"))
-	os.Setenv("LOGGLY_TOKEN", goDotEnvVariable("AWS_SECRET_ACCESS_KEY"))
+	os.Setenv("AWS_ACCESS_KEY_ID", goDotEnvVariable("AWS_ACCESS_KEY_ID"))
+	os.Setenv("AWS_SECRET_ACCESS_KEY", goDotEnvVariable("AWS_SECRET_ACCESS_KEY"))
 	apikey := goDotEnvVariable("API_Key")
 
 	for {
@@ -114,7 +114,7 @@ func main() {
 				if logErr != nil {
 					fmt.Println("err: ", logErr)
 				}
-				
+				/*
 					sess, err := session.NewSession(&aws.Config{
 						Region: aws.String("us-east-1")},
 					)
@@ -144,7 +144,7 @@ func main() {
 						log.Fatalf("Error calling PutItem: %s", err)
 					}
 
-					fmt.Println("Data added to table " + tableName)
+					fmt.Println("Data added to table " + tableName)*/
 			}
 		}
 		time.Sleep(3600 * time.Second)
