@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	loggly "github.com/JamesPEarly/loggly"
+	"github.com/JamesPEarly/loggly"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -49,47 +49,56 @@ type SummaryStruct struct {
 }
 
 func main() {
+	weekday := time.Now().Weekday()
+	fmt.Println(weekday)
+	daycheck := (int(weekday))
 	for {
 		os.Setenv("LOGGLY_TOKEN", "e4a25bf2-e2cc-4771-95c8-b9a68c55bc11")
 		client := loggly.New("anubhav")
-		fmt.Println("Enter Ticker: ")
-		var name string
-		fmt.Scanln(&name)
+		//fmt.Println("Enter Ticker: ")
+		//var name string
+		//fmt.Scanln(&name)
 
-		// Calling API
-		req, err := http.NewRequest(
-			http.MethodGet, "https://api.aletheiaapi.com/StockData?symbol="+name+"&summary=true&statistics=false",
-			nil,
-		)
-		if err != nil {
-			client.EchoSend("error", "Failed with error: "+err.Error())
+		stocks := [10]string{"TSLA", "AAPL", "MSFT", "NIO", "NVDA", "MRNA", "NKLA", "FB", "AMD"}
+		for _, e := range stocks {
+			if daycheck == 7 || daycheck == 0 {
+				fmt.Println("Its the weekend, No new data pull")
+			} else {
+				req, err := http.NewRequest(
+					http.MethodGet, "https://api.aletheiaapi.com/StockData?symbol="+e+"&summary=true&statistics=false",
+					nil,
+				)
+
+				if err != nil {
+					client.EchoSend("error", "Failed with error: "+err.Error())
+				}
+
+				req.Header.Add("Accept", "application/json")
+				req.Header.Add("key", ("9765EE5F17A04F03B9A29C3DBBC698A3"))
+
+				res, err := http.DefaultClient.Do(req)
+				if err != nil {
+					client.EchoSend("error sending HTTP request: %v", err.Error())
+				}
+
+				responseBytes, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					client.EchoSend("error reading HTTP response body: %v", err.Error())
+				}
+
+				//	log.Println("We got the response:", string(responseBytes))
+
+				var symbol Symbol
+				json.Unmarshal(responseBytes, &symbol)
+				fmt.Println(string(responseBytes))
+
+				var respSize string = strconv.Itoa(len(responseBytes))
+				logErr := client.EchoSend("info", "Successful data collection of size: "+respSize)
+				if logErr != nil {
+					fmt.Println("err: ", logErr)
+				}
+			}
+			time.Sleep(3600 * time.Second)
 		}
-
-		req.Header.Add("Accept", "application/json")
-		req.Header.Add("key", ("9765EE5F17A04F03B9A29C3DBBC698A3"))
-
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			client.EchoSend("error sending HTTP request: %v", err.Error())
-		}
-		responseBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			client.EchoSend("error reading HTTP response body: %v", err.Error())
-		}
-		//	log.Println("We got the response:", string(responseBytes))
-
-		// Parse the JSON and display info
-		var symbol Symbol
-		json.Unmarshal(responseBytes, &symbol)
-		fmt.Println(string(responseBytes))
-
-		// Send success message with response size
-		var respSize string = strconv.Itoa(len(responseBytes))
-		logErr := client.EchoSend("info", "Successful data collection of size: "+respSize)
-		if logErr != nil {
-			fmt.Println("err: ", logErr)
-		}
-
-		time.Sleep(50000 * time.Millisecond)
 	}
 }
