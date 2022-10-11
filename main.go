@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/JamesPEarly/loggly"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
@@ -105,8 +109,6 @@ func main() {
 
 				var symbol Symbol
 				json.Unmarshal(responseBytes, &symbol)
-				//formattedData, _ := json.MarshalIndent(symbol, "    ", "    ")
-				//fmt.Println(formattedData)
 				fmt.Println(string(responseBytes))
 
 				var respSize string = strconv.Itoa(len(responseBytes))
@@ -114,37 +116,38 @@ func main() {
 				if logErr != nil {
 					fmt.Println("err: ", logErr)
 				}
-				/*
-					sess, err := session.NewSession(&aws.Config{
-						Region: aws.String("us-east-1")},
-					)
-					if err != nil {
-						log.Fatalf("Error initializing AWS: %s", err)
-					}
 
-					svc := dynamodb.New(sess)
-					var item Item
-					item.Time = symbol.DataCollectedOn
-					item.Name = symbol.Name
-					item.Symbols = responseBytes
+				sess, err := session.NewSession(&aws.Config{
+					Region: aws.String("us-east-1")},
+				)
 
-					av, err := dynamodbattribute.MarshalMap(item)
-					if err != nil {
-						log.Fatalf("Error marshalling %s", err)
-					}
+				if err != nil {
+					log.Fatalf("Error initializing AWS: %s", err)
+				}
 
-					tableName := "Stock Summary"
-					input := &dynamodb.PutItemInput{
-						Item:      av,
-						TableName: aws.String(tableName),
-					}
+				svc := dynamodb.New(sess)
+				var item Item
+				item.Time = symbol.DataCollectedOn
+				item.Name = symbol.Name
+				item.Symbols = responseBytes
 
-					_, err = svc.PutItem(input)
-					if err != nil {
-						log.Fatalf("Error calling PutItem: %s", err)
-					}
+				av, err := dynamodbattribute.MarshalMap(item)
+				if err != nil {
+					log.Fatalf("Error marshalling %s", err)
+				}
 
-					fmt.Println("Data added to table " + tableName)*/
+				tableName := "Stock Summary"
+				input := &dynamodb.PutItemInput{
+					Item:      av,
+					TableName: aws.String(tableName),
+				}
+
+				_, err = svc.PutItem(input)
+				if err != nil {
+					log.Fatalf("Error calling PutItem: %s", err)
+				}
+
+				fmt.Println("Data added to table " + tableName)
 			}
 		}
 		time.Sleep(3600 * time.Second)
