@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
@@ -17,45 +18,45 @@ import (
 	"time"
 )
 
-type Symbol struct {
+type Item struct {
+	Id      string
+	Summary Summary
+	Name    string
+}
+
+type Response struct {
+	Summary Summary `json:"Summary"`
+}
+
+type Summary struct {
 	Name                 string    `json:"Name"`
 	StockSymbol          string    `json:"StockSymbol"`
-	Price                int       `json:"Price"`
-	DollarChange         int       `json:"DollarChange"`
-	PercentChange        int       `json:"PercentChange"`
-	PreviousClose        int       `json:"PreviousClose"`
-	Open                 int       `json:"Open"`
-	BidPrice             int       `json:"BidPrice"`
+	Price                float64   `json:"Price"`
+	DollarChange         float64   `json:"DollarChange"`
+	PercentChange        float64   `json:"PercentChange"`
+	PreviousClose        float64   `json:"PreviousClose"`
+	Open                 float64   `json:"Open"`
+	BidPrice             float64   `json:"BidPrice"`
 	BidQuantity          int       `json:"BidQuantity"`
-	AskPrice             int       `json:"AskPrice"`
+	AskPrice             float64   `json:"AskPrice"`
 	AskQuantity          int       `json:"AskQuantity"`
-	DayRangeLow          int       `json:"DayRangeLow"`
-	DayRangeHigh         int       `json:"DayRangeHigh"`
-	YearRangeLow         int       `json:"YearRangeLow"`
-	YearRangeHigh        int       `json:"YearRangeHigh"`
+	DayRangeLow          float64   `json:"DayRangeLow"`
+	DayRangeHigh         float64   `json:"DayRangeHigh"`
+	YearRangeLow         float64   `json:"YearRangeLow"`
+	YearRangeHigh        float64   `json:"YearRangeHigh"`
 	Volume               int       `json:"Volume"`
 	AverageVolume        int       `json:"AverageVolume"`
-	MarketCap            int       `json:"MarketCap"`
-	Beta                 int       `json:"Beta"`
-	PriceEarningsRatio   int       `json:"PriceEarningsRatio"`
-	EarningsPerShare     int       `json:"EarningsPerShare"`
+	MarketCap            float64   `json:"MarketCap"`
+	Beta                 float64   `json:"Beta"`
+	PriceEarningsRatio   float64   `json:"PriceEarningsRatio"`
+	EarningsPerShare     float64   `json:"EarningsPerShare"`
 	EarningsDate         string    `json:"EarningsDate"`
-	ForwardDividend      int       `json:"ForwardDividend"`
-	ForwardDividendYield int       `json:"ForwardDividendYield"`
-	ExDividendDate       int       `json:"ExDividendDate"`
-	YearTargetEstimate   int       `json:"YearTargetEstimate"`
+	ForwardDividend      float64   `json:"ForwardDividend"`
+	ForwardDividendYield float64   `json:"ForwardDividendYield"`
+	ExDividendDate       string    `json:"ExDividendDate"`
+	YearTargetEstimate   float64   `json:"YearTargetEstimate"`
 	QueriedSymbol        string    `json:"QueriedSymbol"`
 	DataCollectedOn      time.Time `json:"DataCollectedOn"`
-}
-
-type Symboldata struct {
-	Symbols []Symbol `json:"Symbols"`
-}
-
-type Item struct {
-	Time    time.Time
-	Name    string
-	Symbols []byte
 }
 
 func goDotEnvVariable(key string) string {
@@ -105,11 +106,15 @@ func main() {
 				if err != nil {
 					client.EchoSend("error reading HTTP response body: %v", err.Error())
 				}
-				//	log.Println("We got the response:", string(responseBytes))
 
-				var symbol Symbol
-				json.Unmarshal(responseBytes, &symbol)
-				fmt.Println(string(responseBytes))
+				var response Response
+				json.Unmarshal(responseBytes, &response)
+				err = client.EchoSend("info", "Request succeeded")
+				if err != nil {
+					fmt.Println("err:", err)
+				}
+				formattedData, _ := json.MarshalIndent(response, "", "    ")
+				fmt.Println(string(formattedData))
 
 				var respSize string = strconv.Itoa(len(responseBytes))
 				logErr := client.EchoSend("info", "Successful data collection of size: "+respSize)
@@ -126,21 +131,27 @@ func main() {
 				}
 
 				svc := dynamodb.New(sess)
+
 				var item Item
-				item.Time = symbol.DataCollectedOn
-				item.Name = symbol.Name
-				item.Symbols = responseBytes
+				id := uuid.New().String()
+				item.Summary = response.Summary
+				item.Name = response.Summary.Name
+				item.Id = id
+
+				fmt.Print(item.Summary)
 
 				av, err := dynamodbattribute.MarshalMap(item)
 				if err != nil {
 					log.Fatalf("Error marshalling %s", err)
 				}
 
-				tableName := "Stock Summary"
+				tableName := "asigdel-topstocks"
 				input := &dynamodb.PutItemInput{
 					Item:      av,
 					TableName: aws.String(tableName),
 				}
+
+				//	fmt.Println(input)
 
 				_, err = svc.PutItem(input)
 				if err != nil {
@@ -152,4 +163,5 @@ func main() {
 		}
 		time.Sleep(3600 * time.Second)
 	}
+
 }
