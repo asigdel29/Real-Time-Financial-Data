@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
@@ -19,9 +18,9 @@ import (
 )
 
 type Item struct {
-	Id      string
-	Summary Summary
-	Name    string
+	Summary     Summary
+	StockSymbol string
+	Time        string
 }
 
 type Response struct {
@@ -82,6 +81,7 @@ func main() {
 			daycheck := (int(weekday))
 			if daycheck == 7 || daycheck == 0 {
 				fmt.Println("Market Closed")
+				os.Exit(3)
 			} else {
 				var tag string = element
 				client := loggly.New(tag)
@@ -133,12 +133,9 @@ func main() {
 				svc := dynamodb.New(sess)
 
 				var item Item
-				id := uuid.New().String()
 				item.Summary = response.Summary
-				item.Name = response.Summary.Name
-				item.Id = id
-
-				fmt.Print(item.Summary)
+				item.Time = time.Now().Format(time.RFC3339)
+				item.StockSymbol = response.Summary.StockSymbol
 
 				av, err := dynamodbattribute.MarshalMap(item)
 				if err != nil {
@@ -151,8 +148,6 @@ func main() {
 					TableName: aws.String(tableName),
 				}
 
-				//	fmt.Println(input)
-
 				_, err = svc.PutItem(input)
 				if err != nil {
 					log.Fatalf("Error calling PutItem: %s", err)
@@ -161,7 +156,6 @@ func main() {
 				fmt.Println("Data added to table " + tableName)
 			}
 		}
-		time.Sleep(3600 * time.Second)
 	}
-
+	time.Sleep(3600 * time.Second)
 }
