@@ -18,7 +18,8 @@ import (
 )
 
 type Item struct {
-	StockSymbol          string
+	Name                 string `json:"Name"`
+	StockSymbol          string `json:"StockSymbol"`
 	Time                 string
 	Price                float64 `json:"Price"`
 	DollarChange         float64 `json:"DollarChange"`
@@ -102,7 +103,6 @@ func main() {
 		stocks := [10]string{"TSLA", "AAPL", "MSFT", "GOOGL", "NIO", "NVDA", "MRNA", "NKLA", "FB", "AMD"}
 		for i := 1; i <= 10; i++ {
 			for _, element := range stocks {
-
 				weekday := time.Now().Weekday()
 				daycheck := (int(weekday))
 				if daycheck == 7 || daycheck == 0 {
@@ -157,7 +157,6 @@ func main() {
 					}
 
 					svc := dynamodb.New(sess)
-
 					var item Item
 					item.Price = response.Summary.Price
 					item.DollarChange = response.Summary.DollarChange
@@ -186,6 +185,7 @@ func main() {
 					item.QueriedSymbol = response.Summary.QueriedSymbol
 					item.Time = time.Now().Format(time.RFC3339)
 					item.StockSymbol = response.Summary.StockSymbol
+					item.Name = response.Summary.Name
 
 					av, err := dynamodbattribute.MarshalMap(item)
 					if err != nil {
