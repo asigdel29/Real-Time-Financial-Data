@@ -1,18 +1,24 @@
-FROM golang:1.16-alpine
+FROM golang:latest AS build
 
-# Set destination for COPY
 WORKDIR /app
+COPY . .
 
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
+RUN go mod tidy
 
-COPY *.go ./
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o main .
 
-# Build
-RUN go build -o /realtimefinancialdata
+FROM alpine:latest
+
+RUN apk update && \
+    apk upgrade && \
+    apk add ca-certificates
+
+WORKDIR /
 
 EXPOSE 8080
 
-# Run
-CMD [ "/realtimefinancialdata" ]
+COPY --from=build /app/main ./
+
+RUN env && pwd && find .
+
+CMD ["./main"]
