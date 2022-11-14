@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/joho/godotenv"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -83,22 +82,7 @@ type Summary struct {
 	DataCollectedOn      time.Time `json:"DataCollectedOn"`
 }
 
-func goDotEnvVariable(key string) string {
-	err := godotenv.Load(".env")
-
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-
-	return os.Getenv(key)
-}
-
 func main() {
-	os.Setenv("LOGGLY_TOKEN", goDotEnvVariable("LOGGLY_TOKEN"))
-	os.Setenv("AWS_ACCESS_KEY_ID", goDotEnvVariable("AWS_ACCESS_KEY_ID"))
-	os.Setenv("AWS_SECRET_ACCESS_KEY", goDotEnvVariable("AWS_SECRET_ACCESS_KEY"))
-	apikey := goDotEnvVariable("API_Key")
-
 	for {
 		stocks := [10]string{"TSLA", "AAPL", "MSFT", "GOOGL", "NIO", "NVDA", "MRNA", "NKLA", "FB", "AMD"}
 		for i := 1; i <= 10; i++ {
@@ -121,7 +105,7 @@ func main() {
 					}
 
 					req.Header.Add("Accept", "application/json")
-					req.Header.Add("key", (apikey))
+					req.Header.Add("key", ("9765EE5F17A04F03B9A29C3DBBC698A3"))
 
 					res, err := http.DefaultClient.Do(req)
 					if err != nil {
@@ -206,7 +190,8 @@ func main() {
 					fmt.Println("Data added to table " + tableName)
 				}
 			}
+			time.Sleep(1 * time.Hour)
 		}
-		time.Sleep(3600 * time.Second)
 	}
+
 }
